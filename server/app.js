@@ -20,6 +20,7 @@ app.get('/musicians', async (req, res, next) => {
         where: {},
         include: []
     };
+    
 
     // Pagination Options
     // ?page=XX&size=YY
@@ -37,15 +38,14 @@ app.get('/musicians', async (req, res, next) => {
     // ?firstName=XX&lastName=YY
     // Add keys to the WHERE clause to match the firstName param, if it exists.
     // End result: { where: { firstName: req.query.firstName } }
-
-    // Your code here
-    
     // Add keys to the WHERE clause to match the lastName param, if it exists.
     // End result: { where: { lastName: req.query.lastName } }
-    
+
     // Your code here
-
-
+    if (req.query.firstName) query.where.firstName = req.query.firstName;
+    if (req.query.lastName) query.where.lastName = req.query.lastName;
+    
+    
     // STEP 2: WHERE clauses on the associated Band model
     // ?bandName=XX
     // Add an object to the `include` array to include the Band model where the 
@@ -53,7 +53,13 @@ app.get('/musicians', async (req, res, next) => {
     // End result: { include: [{ model: Band, where: { name: req.query.bandName } }] }
 
     // Your code here
-
+    if (req.query.bandName) {
+        console.log("Including bands with name:", req.query.bandName);
+        query.include.push({
+            model: Band,
+            where: { name: req.query.bandName}
+        });
+    }
 
     // STEP 3: WHERE Clauses on the associated Instrument model 
     // ?instrumentTypes[]=XX&instrumentTypes[]=YY
@@ -71,6 +77,13 @@ app.get('/musicians', async (req, res, next) => {
     */
 
     // Your code here
+    if (req.query.instrumentTypes && Array.isArray(req.query.instrumentTypes)) {
+        query.include.push({
+            model: Instrument,
+            where: { type: req.query.instrumentTypes }, 
+            through: { attributes: [] } // Omits the join table attributes
+        });
+    }
 
 
     // BONUS STEP 4: Specify Musician attributes to be returned
@@ -83,6 +96,17 @@ app.get('/musicians', async (req, res, next) => {
     // If any other attributes are provided, only include those values
 
     // Your code here
+    if (req.query.musicianFields) {
+        if (req.query.musicianFields.includes('all')) {
+            // do nothing
+        }
+        else if (req.query.musicianFields.includes('none')) {
+            query.attributes = [] // no attributes will be selected
+        }
+        else {
+            query.attributes = req.query.musicianFields
+        }
+    }
 
 
     // BONUS STEP 5: Specify attributes to be returned
@@ -104,6 +128,20 @@ app.get('/musicians', async (req, res, next) => {
             }]
         }
     */
+        if (req.query.bandFields) {
+            // Locate the Band include in the query object
+            const bandInclude = query.include.find(include => include.model === Band);
+        
+            if (req.query.bandFields.includes('all')) {
+            }
+            else if (req.query.bandFields.includes('none')) {
+                bandInclude.attributes = []; // No attributes will be selected
+            }
+            else {
+                bandInclude.attributes = req.query.bandFields;
+            }
+        }
+        
 
 
     // BONUS STEP 6: Order Options
